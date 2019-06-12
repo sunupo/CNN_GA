@@ -258,7 +258,9 @@ def startup_train(paralist):
     print('image_shape:',image.shape)
     
     #获取分类器     
-    predict = convolutional_neural_network_withpara(image=image, type_size=3, paralist=paralist)
+    # predict = convolutional_neural_network_withpara(image=image, type_size=3, paralist=paralist)
+    predict = convolutional_neural_network(image=image, type_size=3)
+
     # 获取损失函数和准确率
     cost = fluid.layers.cross_entropy(input=predict, label=label)
     # 计算cost中所有元素的平均值
@@ -271,7 +273,7 @@ def startup_train(paralist):
     print(type(accuracy))
     
     # 使用CPU进行训练
-    #place = fluid.CPUPlace()
+    # place = fluid.CPUPlace()
     
     # 使用GPU进行训练,参数0指的是显卡序号
     place = fluid.CUDAPlace(0)
@@ -292,7 +294,7 @@ def startup_train(paralist):
     test_accs = []                                                            #测试的损失值
     test_costs = []                                                           #测试的准确率
     
-    # 训练的轮数
+    # 训练的轮数final_train_acc
     EPOCH_NUM = paralist[20]
     print('开始训练...')
     final_train_acc=0
@@ -461,18 +463,19 @@ class GA:
             individual.setFitness(fitness)
             
     def select_by_wheel(population):
+        # todo：population中的individual应该根据适应度排序
         fitness=[]
         for individual in population:
             fitness.append(individual.getFitness())
         sumFits = sum(fitness)
-        # generate a random number
+        # 产生一个随机实数
         rndPoint = random.uniform(0, sumFits)
-        # calculate the index: O(N)
+        # 计算得到应选择个体的index，返回对应个体
         accumulator = 0.0
         for ind, val in enumerate(fitness):
             accumulator += val
             if accumulator >= rndPoint:
-                return population.getIndivudials[ind]
+                return population.getIndivudial[ind]
 
     def crossover_population(self,population):
         new_population=Population(len(population.getIndivudials()))
@@ -538,22 +541,36 @@ class GA:
                         pass
             new_population.setIndivudial(index,temp_individual)    
         return new_population
-    
+    def met_termination_condition(self,population,opt_individual):
+        individual=population.getFittest(0)
+        if (opt_individual.getFitness()-individual.getFitness) <0.01:
+            return 1
+        else :
+            return 0
+        
 def Drive():
-    ga=GA(50,0.001,0.9,0)
+    ga=GA(50,0.01,0.9,10)
     population=ga.init_population()
     ga.eval_population(population)
     generation=1
-    while ga.met_termination_condition()==0 and generation<2:
+    opt_individual=Individual()
+    count=1
+    while ga.met_termination_condition(population,opt_individual)==0 and count<10:
+        if  (opt_individual.getFitness()-population.getFittest(0).getFitness) >0:
+            opt_individual=population.getFitness(0)
+            count=1
+        else:
+            count+=1    
         population=ga.crossover_population(population);
         population=ga.mutate_population(population)
         ga.eval_population()
         generation+=1
         
     chromosome=population.getFittest(0).getChromosome
+    print(str(generation))
     print(str(chromosome))
+Drive()
     # indiv=Individual()
     # print(str(indiv.chromosome))
     # ff=start(indiv.chromosome)
     # print(str(ff))
-Drive()
