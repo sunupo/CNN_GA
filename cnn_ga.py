@@ -555,7 +555,7 @@ def Drive():
     generation=1
     opt_individual=Individual()
     count=1
-    while ga.met_termination_condition(population,opt_individual)==0 and count<10:
+    while ga.met_termination_condition(population,opt_individual)==0 or count<10:
         if  (opt_individual.getFitness()-population.getFittest(0).getFitness) >0:
             opt_individual=population.getFitness(0)
             count=1
